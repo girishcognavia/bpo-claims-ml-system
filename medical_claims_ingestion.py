@@ -117,13 +117,26 @@ class MedicalClaimsIngestion:
 
                 -- Audit fields
                 created_date DATETIME DEFAULT GETDATE()
-            )
+            );
+
+            -- Create indexes for better performance
+            IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='idx_medical_claims_patient_id')
+                CREATE INDEX idx_medical_claims_patient_id ON medical_claims (patient_id);
+
+            IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='idx_medical_claims_provider_id')
+                CREATE INDEX idx_medical_claims_provider_id ON medical_claims (provider_id);
+
+            IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='idx_medical_claims_service_date')
+                CREATE INDEX idx_medical_claims_service_date ON medical_claims (service_date);
+
+            IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='idx_medical_claims_is_rejected')
+                CREATE INDEX idx_medical_claims_is_rejected ON medical_claims (is_rejected);
             """
 
             with self.engine.begin() as conn:
                 conn.execute(text(create_table_sql))
 
-            logger.info("Medical claims table created successfully")
+            logger.info("Medical claims table and indexes created successfully")
             return True
 
         except Exception as e:

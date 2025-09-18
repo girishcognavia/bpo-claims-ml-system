@@ -39,6 +39,41 @@ class InsuranceDataIngestion:
 
         self.fake = Faker()
 
+    def create_raw_applications_table(self) -> bool:
+        """Create the raw_applications table if it doesn't exist"""
+        try:
+            logger.info("Creating raw_applications table...")
+
+            create_table_sql = """
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='raw_applications' AND xtype='U')
+            CREATE TABLE raw_applications (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                customer_id NVARCHAR(50),
+                age INT,
+                gender NVARCHAR(10),
+                bmi FLOAT,
+                children INT,
+                smoker NVARCHAR(10),
+                region NVARCHAR(20),
+                charges FLOAT,
+                medical_history NVARCHAR(200),
+                employment_status NVARCHAR(50),
+                annual_income INT,
+                application_date DATETIME,
+                created_date DATETIME DEFAULT GETDATE()
+            );
+            """
+
+            with self.engine.begin() as conn:
+                conn.execute(text(create_table_sql))
+
+            logger.info("Raw applications table created successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to create raw_applications table: {e}")
+            return False
+
     def download_public_dataset(self, timeout: int = 30) -> pd.DataFrame:
         """Download and prepare public insurance dataset"""
         try:
@@ -292,6 +327,12 @@ def main():
 
     # Initialize ingestion service
     ingestion = InsuranceDataIngestion(connection_string)
+
+    # Step 0: Create table if it doesn't exist
+    print("Step 0: Creating database table...")
+    if not ingestion.create_raw_applications_table():
+        print("Failed to create table. Exiting.")
+        return
 
     # Step 1: Generate 5000 synthetic records
     print("Step 1: Generating 5000 synthetic records...")
